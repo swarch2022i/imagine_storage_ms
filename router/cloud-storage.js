@@ -33,7 +33,7 @@ router.post('/upload', uploadHandler.array('images'), function(req, res) {
 
         blob.save(image.buffer, (err) => {
           if (!err) {
-            console.log('cool');
+            // console.log('cool');
             const publicUrl = `${process.env.GCS_ENDPOINT}${process.env.GCS_BUCKET}/${blob.name}`
               // console.log(encodeURI(publicUrl))
             resolve({ id: id, url: publicUrl })
@@ -68,8 +68,9 @@ router.delete('/:id', async(req, res) => {
   let files = await bucket.getFiles();
   const image = files[0].filter(f => f.id.includes(`${req.params.id}`))
 
-  if (response.statusCode == 204) {
-    res.status(response.statusCode)
+  let response = await image[0].delete()
+  if (response[0].statusCode == 204) {
+    res.status(200)
       .json({ msg: 'Deleted image', name: image[0].name })
   } else {
     res.status(400)
@@ -77,7 +78,7 @@ router.delete('/:id', async(req, res) => {
   }
 
   // image[0].delete().then(response => {
-  //   res.status(response.statusCode)
+  //   res.status(200)
   //     .json({ msg: 'Deleted image', name: image[0].name })
   // }).catch(err => {
   //   res.status(400)

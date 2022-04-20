@@ -18,4 +18,9 @@ COPY . .
 
 EXPOSE 8080
 
+ENV GCS_BUCKET=
+ENV GCS_FILE=
+ENV GCS_PROJECT_ID=
+ENV GCS_ENDPOINT=https://storage.googleapis.com/
+
 CMD [ "node", "server.js" ]

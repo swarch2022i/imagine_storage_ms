@@ -18,9 +18,9 @@ COPY . .
 
 EXPOSE 8080
 
-ENV GCS_BUCKET=
-ENV GCS_FILE=
-ENV GCS_PROJECT_ID=
+ENV GCS_BUCKET=arqui
+ENV GCS_FILE=clean-framework-340802-d71f73f1694f.json
+ENV GCS_PROJECT_ID=clean-framework-340802
 ENV GCS_ENDPOINT=https://storage.googleapis.com/
 
 CMD [ "node", "server.js" ]

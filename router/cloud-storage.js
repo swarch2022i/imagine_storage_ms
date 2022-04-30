@@ -9,57 +9,37 @@ var uploadHandler = multer({
   storage: multer.memoryStorage()
 });
 
-var { gc, bucket } = require('../utils/cloud-context')
+var { gc, bucket } = require('../utils/cloud-context');
+const { json } = require('express');
 
 
-router.post('/upload', uploadHandler.array('images'), function(req, res) {
-
-  if (!req.files) return;
+router.post('/upload', uploadHandler.array('images'), async function(req, res) {
   if (!req.body.userId) return;
-
-  let promises = []
-  for (let i = 0; i < req.files.length; i++) {
-    const image = req.files[i];
-    let id = uid();
-    let name = id
-    promises.push(
-      new Promise((resolve, reject) => {
-        if (!req.body.albumId) {
-          name = `${req.body.userId}/${id}${path.extname(image.originalname)}`
-        } else {
-          name = `${req.body.userId}/${req.body.albumId}/${id}${path.extname(image.originalname)}`
-        }
-        let blob = bucket.file(name)
-
-        blob.save(image.buffer, (err) => {
-          if (!err) {
-            // console.log('cool');
-            const publicUrl = `${process.env.GCS_ENDPOINT}${process.env.GCS_BUCKET}/${blob.name}`
-              // console.log(encodeURI(publicUrl))
-            resolve({ id: id, url: publicUrl })
-          } else {
-            console.log("error " + err);
-            reject(err)
-          }
-        })
-      })
-    )
+  let files = []
+  let done = { state: false, msg: "" };
+  if (req.files.length === 0) {
+    files = JSON.parse(req.body.images)
+    if (files.length === 0) {
+      return;
+    }
+    done = await handleUploadImages(files, req.body.userId, req.body.albumId, true)
+  } else {
+    done = await handleUploadImages(req.files, req.body.userId, req.body.albumId, false)
   }
 
-  Promise.all(promises).then(results => {
-    console.log(results)
+  if (done) {
     res.status(200)
       .json({
         msg: 'successful upload',
-        urls: results
+        urls: done.msg
       });
-  }).catch(err => {
+  } else {
     res.status(400)
       .json({
         msg: 'Error',
-        error: err,
+        error: done.msg,
       });
-  })
+  }
 });
 
 router.delete('/:id', async(req, res) => {
@@ -100,5 +80,58 @@ router.get('/:id', async(req, res) => {
       .json({ msg: 'Error', error: 'Not found' })
   }
 })
+
+
+async function handleUploadImages(files, userId, albumId = undefined, variation) {
+  let promises = []
+  for (let i = 0; i < files.length; i++) {
+    const image = files[i];
+    let id = uid();
+    let name = id
+    promises.push(
+      new Promise((resolve, reject) => {
+        if (!albumId) {
+          name = `${userId}/${id}${path.extname(image.originalname)}`
+        } else {
+          name = `${userId}/${albumId}/${id}${path.extname(image.originalname)}`
+        }
+        let blob = bucket.file(name)
+
+        let buffer = image.buffer
+        if (variation) {
+          buffer = Buffer.from(image.buffer.data)
+        }
+
+        console.log(buffer)
+        blob.save(buffer, (err) => {
+          if (!err) {
+            // console.log('cool');
+            const publicUrl = `${process.env.GCS_ENDPOINT}${process.env.GCS_BUCKET}/${blob.name}`
+              // console.log(encodeURI(publicUrl))
+            resolve({ id: id, url: publicUrl })
+          } else {
+            console.log("error " + err);
+            reject(err)
+          }
+        })
+      })
+    )
+  }
+
+  let results = await Promise.all(promises)
+
+  if (results) {
+    console.log(results)
+    return { state: true, msg: results }
+  } else {
+    return { state: false, msg: 'error' }
+  }
+  // let results = await Promise.all(promises).then(results => {
+  //   console.log(results)
+  //   return { state: true, msg: results }
+  // }).catch(err => {
+  //   return { state: false, msg: err }
+  // })
+}
 
 module.exports = router;

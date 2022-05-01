@@ -16,7 +16,7 @@ RUN npm install
 # Bundle app source
 COPY . .
 
-EXPOSE 8080
+# EXPOSE 8080
 
 ENV GCS_BUCKET=arqui
 ENV GCS_FILE=clean-framework-340802-d71f73f1694f.json

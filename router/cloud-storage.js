@@ -51,10 +51,10 @@ router.delete('/:id', async(req, res) => {
   let response = await image[0].delete()
   if (response[0].statusCode == 204) {
     res.status(200)
-      .json({ msg: 'Deleted image', name: image[0].name })
+      .json({ name: 'Deleted image', msg: image[0].name })
   } else {
     res.status(400)
-      .json({ msg: 'Error', error: response.statusMessage })
+      .json({ name: 'Error', msg: response.statusMessage })
   }
 
   // image[0].delete().then(response => {
@@ -67,18 +67,45 @@ router.delete('/:id', async(req, res) => {
 })
 
 router.get('/:id', async(req, res) => {
+  console.log('hola')
   if (!req.params.id) return;
 
   let files = await bucket.getFiles();
   const image = files[0].filter(f => f.id.includes(`${req.params.id}`))
 
+  let result = {}
   if (image) {
+    result = { url: `${process.env.GCS_ENDPOINT}${process.env.GCS_BUCKET}/${image[0].name}` }
+    console.log(result)
     res.status(200)
-      .json({ url: `${process.env.GCS_ENDPOINT}${process.env.GCS_BUCKET}/${image[0].name}` })
+      .json(result)
   } else {
+    result = { msg: 'Error', error: 'Not found' }
     res.status(400)
-      .json({ msg: 'Error', error: 'Not found' })
+      .json(result)
   }
+})
+
+router.get('/', async(req, res) => {
+  console.log('hola2')
+
+  let files = await bucket.getFiles();
+  const result = []
+
+  files[0].forEach(file => {
+    result.push({ url: `${process.env.GCS_ENDPOINT}${process.env.GCS_BUCKET}/${file.name}` })
+  });
+
+
+  res.status(200).json(result)
+
+  // if (image) {
+  //   res.status(200)
+  //     .json({ url: `${process.env.GCS_ENDPOINT}${process.env.GCS_BUCKET}/${image[0].name}` })
+  // } else {
+  //   res.status(400)
+  //     .json({ msg: 'Error', error: 'Not found' })
+  // }
 })
 
 

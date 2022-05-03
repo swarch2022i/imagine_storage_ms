@@ -5,12 +5,23 @@ var multer = require("multer");
 var express = require('express');
 var router = express.Router();
 
+var { start, queue } = require('../utils/rabbit-client')
+
+
+let rabbitConnection, rabbitChannel;
+//Initialize RabbitMQ
+start().then(({ connection, channel }) => {
+  rabbitConnection = connection
+  rabbitChannel = channel
+})
+
 var uploadHandler = multer({
   storage: multer.memoryStorage()
 });
 
 var { gc, bucket } = require('../utils/cloud-context');
 const { json } = require('express');
+const { channel } = require('diagnostics_channel');
 
 
 router.post('/upload', uploadHandler.array('images'), async function(req, res) {
@@ -28,6 +39,16 @@ router.post('/upload', uploadHandler.array('images'), async function(req, res) {
   }
 
   if (done) {
+    const sent = await rabbitChannel.sendToQueue(
+      queue,
+      // Buffer.from('nicolas'))
+      Buffer.from(JSON.stringify(done)))
+
+    if (sent) {
+      console.log(`Sent message to "${queue}" queue`, done)
+    } else {
+      console.log(`Fails sending message to "${queue}" queue`, done)
+    }
     res.status(200)
       .json({
         msg: 'successful upload',

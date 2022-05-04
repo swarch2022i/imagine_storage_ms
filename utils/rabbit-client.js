@@ -5,7 +5,7 @@ const queue = process.env.QUEUE || 'hello'
 
 function start() {
   let promise = new Promise(async(resolve, reject) => {
-    let connection = await amqp.connect('amqp://34.125.254.72')
+    let connection = await amqp.connect(`amqp://${process.env.RABBITMQ_HOST}`)
     let channel = await connection.createChannel()
 
     channel.assertQueue(queue).then(() => {

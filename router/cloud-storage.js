@@ -24,21 +24,41 @@ const { json } = require('express');
 const { channel } = require('diagnostics_channel');
 
 
-router.post('/upload', uploadHandler.array('images'), async function(req, res) {
+//mientras el careverga de nicolas hace su funcion para subir varias imagenes al tiempo
+// router.post('/upload', uploadHandler.single('images'), async function(req, res) {
+router.post('/upload', uploadHandler.array('images', 1), async function(req, res) {
   if (!req.body.userId) return;
   let files = []
-  let done = { state: false, msg: "" };
+  let done = {
+    state: false,
+    msg: {
+      ownerId: req.body.userId,
+      name: req.body.name || "",
+      description: req.body.description || "",
+      tags: req.body.tags || [],
+      commentsId: req.body.commentsId || [],
+      imageStorageId: "",
+      url: ""
+    }
+  };
+  let response = {
+    state: false,
+    msg: "",
+  }
   if (req.files.length === 0) {
     files = JSON.parse(req.body.images)
     if (files.length === 0) {
       return;
     }
-    done = await handleUploadImages(files, req.body.userId, req.body.albumId, true)
+    response = await handleUploadImages(files, req.body.userId, req.body.albumId, true)
   } else {
-    done = await handleUploadImages(req.files, req.body.userId, req.body.albumId, false)
+    response = await handleUploadImages(req.files, req.body.userId, req.body.albumId, false)
   }
 
   if (done) {
+    done.state = response.state;
+    done.msg.imageStorageId = response.msg[0].id;
+    done.msg.url = response.msg[0].url;
     const sent = await rabbitChannel.sendToQueue(
       queue,
       // Buffer.from('nicolas'))
@@ -52,7 +72,8 @@ router.post('/upload', uploadHandler.array('images'), async function(req, res) {
     res.status(200)
       .json({
         msg: 'successful upload',
-        urls: done.msg
+        body: done
+          // urls: done.msg
       });
   } else {
     res.status(400)

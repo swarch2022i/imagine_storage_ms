@@ -13,6 +13,8 @@ let rabbitConnection, rabbitChannel;
 start().then(({ connection, channel }) => {
   rabbitConnection = connection
   rabbitChannel = channel
+}).catch(err => {
+  console.log(err)
 })
 
 var uploadHandler = multer({
@@ -59,14 +61,15 @@ router.post('/upload', uploadHandler.array('images', 1), async function(req, res
     done.state = response.state;
     done.msg.imageStorageId = response.msg[0].id;
     done.msg.url = response.msg[0].url;
-    const sent = await rabbitChannel.sendToQueue(
-      queue,
-      // Buffer.from('nicolas'))
-      Buffer.from(JSON.stringify(done)))
 
-    if (sent) {
+    try {
+      const sent = await rabbitChannel.sendToQueue(
+        queue,
+        // Buffer.from('nicolas'))
+        Buffer.from(JSON.stringify(done)))
+
       console.log(`Sent message to "${queue}" queue`, done)
-    } else {
+    } catch (error) {
       console.log(`Fails sending message to "${queue}" queue`, done)
     }
     res.status(200)

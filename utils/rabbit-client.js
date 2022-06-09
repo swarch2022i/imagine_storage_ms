@@ -24,6 +24,10 @@ function start() {
   return promise
 }
 
+// start().then(() => {
+//   console.log('funciono')
+// })
+
 module.exports = {
   start,
   queue

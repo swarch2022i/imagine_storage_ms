@@ -10,12 +10,28 @@ var { start, queue } = require('../utils/rabbit-client')
 
 let rabbitConnection, rabbitChannel;
 //Initialize RabbitMQ
-start().then(({ connection, channel }) => {
-  rabbitConnection = connection
-  rabbitChannel = channel
-}).catch(err => {
-  console.log(err)
-})
+
+let connected = false
+
+function startMQ() {
+  setTimeout(() => {
+    console.log('intento')
+    start().then(({ connection, channel }) => {
+      rabbitConnection = connection
+      rabbitChannel = channel
+      connected = true
+    }).catch(err => {
+      console.log(err)
+    }).finally(() => {
+      if (!connected)
+        startMQ()
+      else
+        console.log('conectado a rabbitMQ')
+    })
+  }, 5000)
+}
+
+startMQ()
 
 var uploadHandler = multer({
   storage: multer.memoryStorage()
